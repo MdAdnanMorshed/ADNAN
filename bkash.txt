@@ -1,0 +1,26 @@
+Bkash
+1.send money 
+2. buy airtime
+3.payment
+4.cash out
+5.remittance 
+6.my bkash
+7.help line
+
+111:Send money 
+Enter Reciver bkash Acccount no:
+phone number
+amount 
+pin
+masg
+112: Buy airtime
+	case 01 :Gp
+	case 02 :airtle
+	case 03 :Robi
+	case 04 :Teletalk
+116:my bkash
+	case 01 :check balance (pin,your current bkash account balance is tk500 your avielavel bkash account balance tk500.  )
+	case 02 :Change mobile menu pin 
+	case 03	:activete ATM
+	case 04	:Change ATM pin
+	case 00 :Menu		  	
