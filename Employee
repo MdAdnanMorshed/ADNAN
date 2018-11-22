@@ -1,0 +1,677 @@
+DBSQLiteHelper :
+//*****************************************************************
+package com.bitm.mad.sqlitedatabasemad48.dbhelper;
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+
+public class SqliteDbHelper extends SQLiteOpenHelper {
+
+    public static final String DB_NAME = "emp_db";
+    public static final int DB_VERSION = 2;
+    public static final String TABLE_NAME = "basic_info";
+
+    public static final String DB_COL_ID = "id";
+    public static final String DB_COL_NAME = "name";
+    public static final String DB_COL_SALARY = "salary";
+    public static final String DB_COL_DESIGNATION = "designation";
+
+
+    public static final String TABLE_ALLOWANCE = "tbl_allowance";
+
+    public static final String ALL_COL_ID = "id";
+    public static final String ALL_COL_EMP_ID = "empId";
+    public static final String ALL_COL_TRANSPORT = "transport";
+    public static final String ALL_COL_MEDICAL = "medical";
+    public static final String ALL_COL_FOOD = "food";
+
+
+    public static final String CREATE_TBL_EMPLOYEE =
+            "CREATE TABLE " +TABLE_NAME
+                    +"("+DB_COL_ID+" INTEGER PRIMARY KEY, "
+                    +DB_COL_NAME+" TEXT, "
+                    +DB_COL_DESIGNATION+" TEXT, "
+                    +DB_COL_SALARY+" REAL);";
+
+    public static final String CREATE_TABLE_ALLOWANCE =
+            "CREATE TABLE "+TABLE_ALLOWANCE
+            +"("+ALL_COL_ID+" INTEGER PRIMARY KEY, "
+            +ALL_COL_EMP_ID+" INTEGER, "
+            +ALL_COL_TRANSPORT+" REAL, "
+            +ALL_COL_MEDICAL+" REAL, "
+            +ALL_COL_FOOD+" REAL);";
+
+    //String q = "CREATE TABLE basic_info(id INTEGER PRIMARY KEY, name TEXT, designation TEXT, salary REAL);";
+
+
+
+    public SqliteDbHelper(Context context) {
+        super(context, DB_NAME, null, DB_VERSION);
+
+    }
+
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        db.execSQL(CREATE_TBL_EMPLOYEE);
+
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        if(newVersion == 2){
+            db.execSQL(CREATE_TABLE_ALLOWANCE);
+        }
+    }
+}
+DBSource :
+******************************************************************
+package com.bitm.mad.sqlitedatabasemad48.dbhelper;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+
+import com.bitm.mad.sqlitedatabasemad48.pojo.Employee;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class SqliteDbSource {
+
+    private SqliteDbHelper helper;
+    private SQLiteDatabase db;
+
+    public SqliteDbSource(Context context){
+        helper = new SqliteDbHelper(context);
+
+    }
+
+    public void open(){
+        db = helper.getWritableDatabase();
+    }
+
+    public void close(){
+        db.close();
+    }
+
+    public boolean deleteEmployeeById(int empId){
+        this.open();
+       int deletedRow =  db.delete(SqliteDbHelper.TABLE_NAME,
+                SqliteDbHelper.DB_COL_ID + " = " + empId,
+                null );
+        this.close();
+        if(deletedRow>0)
+            return true;
+        return false;
+}
+
+    public long insertNewEmployee(Employee employee){
+        this.open();
+
+        ContentValues values = new ContentValues();
+
+        values.put(SqliteDbHelper.DB_COL_NAME, employee.getName());
+        values.put(SqliteDbHelper.DB_COL_DESIGNATION, employee.getDesignation());
+        values.put(SqliteDbHelper.DB_COL_SALARY, employee.getSalary());
+
+        long insertedRow = db.insert(SqliteDbHelper.TABLE_NAME,
+                null, values);
+        this.close();
+        return insertedRow;
+    }
+
+
+    public List<Employee> getAllEmployees(){
+        List<Employee> employeeList = new ArrayList<>();
+        this.open();
+
+        Cursor cursor = db.rawQuery("SELECT * FROM "+SqliteDbHelper.TABLE_NAME
+                + " ORDER BY " + SqliteDbHelper.DB_COL_ID + " DESC", null);
+        if(cursor != null && cursor.getCount() > 0){
+//            cursor.moveToFirst();
+
+            while (cursor.moveToNext()){
+                int id = cursor.getInt(cursor.getColumnIndex(SqliteDbHelper.DB_COL_ID));
+                String name = cursor.getString(cursor.getColumnIndex(SqliteDbHelper.DB_COL_NAME));
+                String designation = cursor.getString(cursor.getColumnIndex(SqliteDbHelper.DB_COL_DESIGNATION));
+                double salary = cursor.getDouble(cursor.getColumnIndex(SqliteDbHelper.DB_COL_SALARY));
+                Employee e = new Employee(id, name, designation, salary);
+                employeeList.add(e);
+            }
+            /*
+            for(int i = 0; i < cursor.getCount(); i++){
+
+                cursor.moveToNext();
+            }*/
+        }
+        cursor.close();
+        this.close();
+        return employeeList;
+    }
+
+    public Employee getEmployeeById(int employeeId){
+        Employee employee = null;
+        this.open();
+        Cursor cursor = db.rawQuery("select * from "+
+        SqliteDbHelper.TABLE_NAME+" where "+SqliteDbHelper.DB_COL_ID+ " = "+employeeId, null);
+        if(cursor != null && cursor.getCount() > 0){
+            cursor.moveToFirst();
+            String name = cursor.getString(cursor.getColumnIndex(SqliteDbHelper.DB_COL_NAME));
+            String designation = cursor.getString(cursor.getColumnIndex(SqliteDbHelper.DB_COL_DESIGNATION));
+            double salary = cursor.getDouble(cursor.getColumnIndex(SqliteDbHelper.DB_COL_SALARY));
+            employee = new Employee(employeeId, name, designation, salary);
+        }
+        cursor.close();
+        this.close();
+        return employee;
+    }
+
+
+    public int updateEmployee(Employee employee){
+        this.open();
+        ContentValues values = new ContentValues();
+
+        values.put(SqliteDbHelper.DB_COL_NAME, employee.getName());
+        values.put(SqliteDbHelper.DB_COL_DESIGNATION, employee.getDesignation());
+        values.put(SqliteDbHelper.DB_COL_SALARY, employee.getSalary());
+        int updatedRow = db.update(SqliteDbHelper.TABLE_NAME,
+                values,
+                SqliteDbHelper.DB_COL_ID+" = "+employee.getId(),
+                null);
+        this.close();
+        return updatedRow;
+    }
+
+}
+
+Pojo Class (Employee)
+/************************************************
+package com.bitm.mad.sqlitedatabasemad48.pojo;
+
+public class Employee {
+
+    private int id;
+    private String name;
+    private String designation;
+    private double salary;
+    private Allowance allowance;
+
+    public Employee(int id, String name, String designation, double salary) {
+        this.id = id;
+        this.name = name;
+        this.designation = designation;
+        this.salary = salary;
+    }
+
+    public Employee(String name, String designation, double salary) {
+        this.name = name;
+        this.designation = designation;
+        this.salary = salary;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDesignation() {
+        return designation;
+    }
+
+    public void setDesignation(String designation) {
+        this.designation = designation;
+    }
+
+    public double getSalary() {
+        return salary;
+    }
+
+    public void setSalary(double salary) {
+        this.salary = salary;
+    }
+
+    @Override
+    public String toString() {
+        return "Employee{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", designation='" + designation + '\'' +
+                ", salary=" + salary +
+                '}';
+    }
+
+    public Allowance getAllowance() {
+        return allowance;
+    }
+
+    public void setAllowance(Allowance allowance) {
+        this.allowance = allowance;
+    }
+}
+
+Recycler View (Custom Adpater) 
+//********************************************************
+package com.bitm.mad.sqlitedatabasemad48;
+
+import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.PopupMenu;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.bitm.mad.sqlitedatabasemad48.pojo.Employee;
+
+import java.util.List;
+
+public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapter.EmployeeViewHolder> {
+    private Context context;
+    private List<Employee> employeeList;
+    private EmployeeOperationInterface operationInterface;
+
+    public EmployeeListAdapter(Context context, List<Employee> employeeList) {
+        this.context = context;
+        this.operationInterface = (EmployeeOperationInterface) context;
+        this.employeeList = employeeList;
+    }
+
+    @NonNull
+    @Override
+    public EmployeeViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = LayoutInflater.from(context)
+                .inflate(R.layout.employee_row, parent, false);
+        return new EmployeeViewHolder(v);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull EmployeeViewHolder holder, final int position) {
+        holder.nameTV.setText(employeeList.get(position).getName());
+        holder.designationTV.setText(employeeList.get(position).getDesignation());
+        holder.idTV.setText("ID: " + employeeList.get(position).getId());
+        holder.menuTV.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                PopupMenu popupMenu = new PopupMenu(context, v);
+                popupMenu.getMenuInflater().inflate(R.menu.emp_menu, popupMenu.getMenu());
+                popupMenu.show();
+
+                popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        switch (item.getItemId()){
+                            case R.id.row_edit:
+                                Toast.makeText(context, "edit "+employeeList.get(position).getId(), Toast.LENGTH_SHORT).show();
+                               // operationInterface.onEmployeeUpdate(employeeList.get(position).getId());
+
+                                break;
+                            case R.id.row_delete:
+                                operationInterface.onEmployeeDelete(employeeList.get(position).getId());
+//                                Toast.makeText(context, "delete "+position, Toast.LENGTH_SHORT).show();
+                                break;
+                        }
+                        return false;
+                    }
+                });
+            }
+        });
+    }
+
+    public void updateList(List<Employee> employeeList){
+        this.employeeList = employeeList;
+        notifyDataSetChanged();
+    }
+
+    interface  EmployeeOperationInterface{
+        void onEmployeeDelete(int employeeId);
+        void onEmployeeUpdate(int employeeId);
+    }
+    @Override
+    public int getItemCount() {
+        return employeeList.size();
+    }
+
+    class EmployeeViewHolder extends RecyclerView.ViewHolder {
+        TextView nameTV,designationTV, menuTV,idTV;
+        ImageView iv;
+        public EmployeeViewHolder(@NonNull View itemView) {
+            super(itemView);
+            nameTV = itemView.findViewById(R.id.row_name);
+            menuTV = itemView.findViewById(R.id.row_menu);
+            idTV = itemView.findViewById(R.id.row_id);
+            iv = itemView.findViewById(R.id.row_img);
+            designationTV = itemView.findViewById(R.id.row_designation);
+        }
+    }
+}
+Employee List :
+
+/******************************************
+package com.bitm.mad.sqlitedatabasemad48;
+
+import android.content.Intent;
+import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.View;
+import android.widget.Toast;
+
+import com.bitm.mad.sqlitedatabasemad48.dbhelper.SqliteDbSource;
+import com.bitm.mad.sqlitedatabasemad48.pojo.Employee;
+
+import java.util.List;
+
+public class EmployeeListActivity extends AppCompatActivity implements EmployeeListAdapter.EmployeeOperationInterface {
+
+    private RecyclerView rv;
+    private FloatingActionButton fab;
+    private GridLayoutManager gridLayoutManager;
+    private EmployeeListAdapter adapter;
+    private SqliteDbSource source;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_employee_list);
+        rv = findViewById(R.id.timeRV);
+        fab = findViewById(R.id.addFab);
+        source = new SqliteDbSource(this);
+
+        gridLayoutManager = new GridLayoutManager(this, 2);
+        rv.setLayoutManager(gridLayoutManager);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(EmployeeListActivity.this,MainActivity.class));
+            }
+        });
+        adapter = new EmployeeListAdapter(this,source.getAllEmployees());
+        rv.setAdapter(adapter);
+    }
+
+    @Override
+    public void onEmployeeDelete(int employeeId) {
+        if(source.deleteEmployeeById(employeeId)){
+            Toast.makeText(this, "Deleted successfully", Toast.LENGTH_SHORT).show();
+            adapter.updateList(source.getAllEmployees());
+        }else {
+            Toast.makeText(this, "Mission failed", Toast.LENGTH_SHORT).show();
+        }
+//        Toast.makeText(this, "Employee ID " + employeeId, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onEmployeeUpdate(int employeeId) {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra("id",employeeId);
+        startActivity(intent);
+    }
+
+}
+
+MainAcitvity 
+//**************************************************************
+package com.bitm.mad.sqlitedatabasemad48;
+
+import android.content.Intent;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import com.bitm.mad.sqlitedatabasemad48.dbhelper.SqliteDbSource;
+import com.bitm.mad.sqlitedatabasemad48.pojo.Allowance;
+import com.bitm.mad.sqlitedatabasemad48.pojo.Employee;
+
+import java.util.ArrayList;
+import java.util.List;
+
+
+public class MainActivity extends AppCompatActivity {
+
+    private EditText nameET,designationET,salaryET;
+    private SqliteDbSource source;
+    private Button saveBtn, updateBtn;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        nameET = findViewById(R.id.emp_nameET);
+        designationET = findViewById(R.id.emp_designationET);
+        salaryET = findViewById(R.id.emp_salaryET);
+        saveBtn = findViewById(R.id.saveBtn);
+        updateBtn = findViewById(R.id.updateBtn);
+        source = new SqliteDbSource(this);
+        final int employeeId = getIntent().getIntExtra("id", 0);
+        if(employeeId > 0){
+            final Employee employee = source.getEmployeeById(employeeId);
+            if(employee != null){
+                nameET.setText(employee.getName());
+                designationET.setText(employee.getDesignation());
+                salaryET.setText(String.valueOf(employee.getSalary()));
+                saveBtn.setVisibility(View.GONE);
+                updateBtn.setVisibility(View.VISIBLE);
+                updateBtn.setTag(employeeId);
+            }
+        }
+    }
+
+
+    public void saveEmployee(View view) {
+
+        String  name = nameET.getText().toString();
+        String  designation = designationET.getText().toString();
+        String  salary = salaryET.getText().toString();
+
+        if(name.isEmpty() || designation.isEmpty() || salary.isEmpty()){
+            Toast.makeText(this,
+                    "All fields are necessary", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Employee em = new Employee(name,designation,Double.parseDouble(salary));
+
+        long employeeId = source.insertNewEmployee(em);
+        if(employeeId > 0){
+            Toast.makeText(this,
+                    "Inserted successfully", Toast.LENGTH_SHORT).show();
+            //Allowance allowance = new Allowance((int)employeeId,);
+            startActivity(new Intent(this,EmployeeListActivity.class));
+        }
+        else{
+            Toast.makeText(this,
+                    "Not inserted", Toast.LENGTH_SHORT).show();
+        }
+
+
+    }
+
+    public void updateEmployee(View view) {
+        String  name = nameET.getText().toString();
+        String  designation = designationET.getText().toString();
+        String  salary = salaryET.getText().toString();
+
+        if(name.isEmpty() || designation.isEmpty() || salary.isEmpty()){
+            Toast.makeText(this,
+                    "All fields are necessary", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final int employeeId = (int) updateBtn.getTag();
+        final Employee employee = new Employee(employeeId, name, designation, Double.parseDouble(salary));
+        int updatedRow = source.updateEmployee(employee);
+        if(updatedRow > 0){
+            Toast.makeText(this, "updated successfully", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, EmployeeListActivity.class));
+        }else{
+            Toast.makeText(this, "failed to update", Toast.LENGTH_SHORT).show();
+        }
+    }
+}
+
+Design Layout 
+/////////////////////////////////////////////
+Employee List Layout Design
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".EmployeeListActivity">
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/timeRV"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/addFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:src="@android:drawable/ic_input_add"
+        app:fabSize="normal"
+        android:layout_margin="6dp"/>
+
+</RelativeLayout>
+
+Main Actcity 
+/**********************************************
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <EditText
+        android:id="@+id/emp_nameET"
+        android:hint="Employee Name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <EditText
+        android:id="@+id/emp_designationET"
+        android:hint="Employee Designation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <EditText
+        android:inputType="number"
+        android:id="@+id/emp_salaryET"
+        android:hint="Employee Salary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/saveBtn"
+        android:onClick="saveEmployee"
+        android:textSize="20sp"
+        android:text="Save"
+        android:textAllCaps="false"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <Button
+        android:id="@+id/updateBtn"
+        android:onClick="updateEmployee"
+        android:textSize="20sp"
+        android:text="Update"
+        android:visibility="gone"
+        android:textAllCaps="false"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+</LinearLayout>
+
+CardView Employee
+//******************************************
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:cardElevation="5dp"
+    android:layout_margin="7dp"
+    android:foreground="?attr/selectableItemBackground"
+    android:clickable="true">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/row_img"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:src="@mipmap/ic_launcher" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_below="@+id/row_img"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/row_id"
+                android:gravity="center"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                 />
+            <TextView
+                android:id="@+id/row_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                />
+
+            <TextView
+                android:id="@+id/row_designation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                 />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/row_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/row_img"
+            android:layout_alignParentRight="true"
+            android:gravity="center_vertical"
+            android:padding="6dp"
+            android:text="@string/row_menu"
+            android:textSize="24dp" />
+    </RelativeLayout>
+</android.support.v7.widget.CardView>
+
+
+
